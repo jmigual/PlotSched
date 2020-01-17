@@ -19,6 +19,7 @@ TraceFileLister::TraceFileLister(QWidget *parent) :
   tree->setHeaderLabel("Filename");
 
   this->setWidget(tree);
+  this->setStyleSheet("background-color: black; color: white;");
 
   connect(tree, SIGNAL(itemClicked(QTreeWidgetItem*,int)), this, SLOT(traceSelected(QTreeWidgetItem*,int)));
 }

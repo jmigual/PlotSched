@@ -29,16 +29,12 @@ MainWindow::MainWindow(unsigned long startingTick, unsigned long finalTick, QWid
   populate_dock();
   populate_toolbar();
 
-  this->_currentView = VIEWS::GANNT;
 
   EVENTSMANAGER.setMainWindow(this);
   EVENTSPARSER.setStartingTick(startingTick);
   EVENTSPARSER.setFinalTick(finalTick);
-//  this->_em = new EventsManager();
-//  this->_ep = new EventsParser(_em, startingTick, finalTick);
-//  connect(_ep, SIGNAL(eventGenerated(Event)), _em, SLOT(newEventArrived(Event)));
-//  connect(_ep, SIGNAL(fileParsed()), this, SLOT(updatePlot()));
 
+  this->_currentView = VIEWS::GANNT;
   loadSettings();
 
   showMaximized();

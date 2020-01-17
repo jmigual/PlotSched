@@ -6,14 +6,14 @@ CustomToolBar::CustomToolBar(QWidget * parent) :
   QToolBar(parent)
 {
   QToolButton * buttonOpen = new QToolButton(this);
-  buttonOpen->setIcon(QIcon::fromTheme("document-open"));
+  buttonOpen->setIcon(QIcon(":/icons/assets/folder64x.png"));
   this->addWidget(buttonOpen);
 
   connect(buttonOpen, SIGNAL(clicked()), this, SLOT(buttonOpenSlot()));
 
 
   QToolButton * buttonRefresh = new QToolButton(this);
-  buttonRefresh->setIcon(QIcon::fromTheme("view-refresh"));
+  buttonRefresh->setIcon(QIcon(":/icons/assets/refresh64x.png"));
   this->addWidget(buttonRefresh);
 
   connect(buttonRefresh, SIGNAL(clicked()), this, SLOT(buttonRefreshSlot()));
