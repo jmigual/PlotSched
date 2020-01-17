@@ -3,11 +3,13 @@
 Scheduling traces plotter
 
 * Under development, November 2015
+* Different views (Gannt and from tasks viewpoint) - January 2020
 
 ----
 ## Authors
 
-* Alessio Balsini (a.balsini@sssup.it)
+* Alessio Balsini (a.balsini@sssup.it) - original author
+* Agostino Mascitti (a.mascitti@santannapisa.it)
 
 License: GPL 2.0
 
@@ -46,7 +48,7 @@ make
 Now, the executable `PlotSched` is generated and can be run:
 
 ```
-./PlotSched
+./PlotSched -i trace.pst
 ```
 
 ### In your code
