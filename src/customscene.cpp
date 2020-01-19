@@ -19,7 +19,7 @@ void CustomScene::mousePressEvent(QGraphicsSceneMouseEvent * mouseEvent)
   switch (mouseEvent->button()) {
     case Qt::LeftButton :
       qDebug() << "Mouse pressed at : " << mouseEvent->lastScenePos();
-      qDebug() << "Scene width : " << this->width();
+//      qDebug() << "Scene width : " << this->width();
       break;
     case Qt::RightButton :
       pressed = true;
@@ -33,6 +33,8 @@ void CustomScene::mousePressEvent(QGraphicsSceneMouseEvent * mouseEvent)
       break;
     default : break;
   }
+
+  QGraphicsScene::mousePressEvent(mouseEvent);
 }
 
 
@@ -54,6 +56,8 @@ void CustomScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * mouseEvent)
       break;
     default : break;
   }
+
+  QGraphicsScene::mouseReleaseEvent(mouseEvent);
 }
 
 
@@ -63,5 +67,6 @@ void CustomScene::mouseMoveEvent(QGraphicsSceneMouseEvent *mouseEvent)
     return;
 
   range->setEndPoint(mouseEvent->lastScenePos());
+  QGraphicsScene::mouseMoveEvent(mouseEvent);
   //qDebug() << "Moving mouse to " << mouseEvent->lastScenePos();
 }

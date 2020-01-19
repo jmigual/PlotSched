@@ -4,13 +4,16 @@
 #include <QBrush>
 #include <QGraphicsSimpleTextItem>
 #include <QPen>
+#include <cmath>
+
+#define TWISTED_ARROW_FILENAME ":/icons/assets/twisted_arrow64x.png"
 
 QColor EventView::eventToColor(EVENT_KIND e)
 {
   switch (e) {
-    case RUNNING : return Qt::green;
-    case BLOCKED : return Qt::red;
-    case CONFIGURATION : return Qt::yellow;
+    case RUNNING : return Qt::darkGreen;
+    case BLOCKED : return Qt::darkRed;
+    case CONFIGURATION : return Qt::darkYellow;
     default: return Qt::white;
   }
 }
@@ -35,13 +38,15 @@ void EventView::setEvent(Event* e)
   qDeleteAll(this->childItems());
 
   e_ = e;
-
   drawText();
 
   switch (e_->getKind()) {
     case RUNNING :
-      rect = drawRect(e_->getDuration() * e_->getMagnification(), eventToColor(e_->getKind()));
-      updateFgText();
+      {
+        rect = drawRect(e_->getDuration() * e_->getMagnification(), eventToColor(e_->getKind()));
+        if (e_->hasFinished() == false)
+            rect->setBrush(QBrush(Qt::green));
+      }
       break;
     case BLOCKED :
       rect = drawRect(e_->getDuration() * e_->getMagnification(), eventToColor(e_->getKind()));
@@ -62,6 +67,10 @@ void EventView::setEvent(Event* e)
     case DEAD :
       drawCircle();
       break;
+    case FREQUENCY_CHANGE:
+//      qDebug() << e_->print();
+      drawTextAboveEvent(drawArrowTwisted(), QString::number(dynamic_cast<CPU_BL*>(e_->getCPU())->getIsland()->getFrequencyAt(e_->getStart())));
+      break;
     default: return;
   }
 
@@ -69,6 +78,9 @@ void EventView::setEvent(Event* e)
 }
 
 void EventView::updateFgText() {
+    if (e_->getKind() == FREQUENCY_CHANGE)
+        return;
+
     if (_fgText == FG_FIELD::TASKANME)
         drawTextInRect(rect, e_->getTask()->name);
     else if (_fgText == FG_FIELD::CPUNAME)
@@ -196,8 +208,15 @@ void EventView::drawArrowDownRed()
   this->addToGroup(right);
 }
 
+QGraphicsPixmapItem* EventView::drawArrowTwisted() {
+    QImage image = QImage(TWISTED_ARROW_FILENAME);
+    QGraphicsPixmapItem* item = new QGraphicsPixmapItem(QPixmap::fromImage(image));
+    item->moveBy(e_->getStart(), 0);
+    this->addToGroup(item);
+    return item;
+}
 
-QGraphicsRectItem *EventView::drawRect(qreal duration, QColor color)
+RectItemShowingInfo *EventView::drawRect(qreal duration, QColor color)
 {
   /******************************
    *
@@ -211,7 +230,7 @@ QGraphicsRectItem *EventView::drawRect(qreal duration, QColor color)
 
   qreal rectHeight = height / 1.9;
 
-  QGraphicsRectItem * r = new QGraphicsRectItem(0,
+  RectItemShowingInfo * r = new RectItemShowingInfo(0,
                                                 0,
                                                 duration,
                                                 rectHeight,
@@ -239,7 +258,7 @@ void EventView::drawRectH(qreal duration, QColor color)
 
   qreal rectHeight = height / 1.5;
 
-  QGraphicsRectItem * r = new QGraphicsRectItem(0,
+  RectItemShowingInfo * r = new RectItemShowingInfo(0,
                                                 0,
                                                 duration,
                                                 rectHeight,
@@ -269,10 +288,74 @@ void EventView::drawText()
   }
 }
 
+void EventView::drawTextAboveEvent(QGraphicsItem* item, const QString& text)
+{
+    QGraphicsSimpleTextItem * start = new QGraphicsSimpleTextItem(text, this);
+    start->setPen(QPen(Qt::blue));
+    start->setPos(item->pos().x(), item->pos().y());
+    this->addToGroup(start);
+}
+
 // adds text inside rect
 void EventView::drawTextInRect(QGraphicsRectItem *rect, const QString& text)
 {
     QGraphicsSimpleTextItem * start = new QGraphicsSimpleTextItem(text, this);
     start->setPos(rect->pos().x() + 3, rect->pos().y());
     this->addToGroup(start);
+}
+
+
+// ------------------------------------ RectItemShowingInfo
+
+void RectItemShowingInfo::onClicked(QGraphicsSceneMouseEvent* e, EventView* eventview)
+{    
+    QVector<QPair<TICK, double>> frequenciesInRange;
+    QString frequenciesInRangeStr = "", info = "";
+    TICK execdCycles = 0;
+    double speed = 0;
+    Event* e_ = eventview->getEvent();
+
+    TICK start = e_->getStart();
+    TICK end   = e_->getDuration() + start;
+    TICK delta = e_->getDuration();
+
+    info = e_->getTask()->name + "\n";
+    info += QString("end - start = %1 - %2 = %3 (time)\n").arg(end).arg(start).arg(delta);
+    info += "\n";
+
+    CPU_BL* cpubl = dynamic_cast<CPU_BL*>(e_->getCPU());
+    if (cpubl != NULL) {
+        info += "time\t->\tfrequency\tspeed\n";
+
+        frequenciesInRange = cpubl->getIsland()->getFrequenciesOverTimeInRange(start, end);
+        std::reverse(frequenciesInRange.begin(), frequenciesInRange.end());
+
+        TICK last_time = e_->getDuration() + e_->getStart();
+        double last_speed = 0.0;
+        int idx = 0;
+        for (QPair<TICK, double> freqs : frequenciesInRange) {
+            speed = cpubl->getIsland()->getSpeed(freqs.second);
+
+            //  time -> frequency
+            info += QString("%1\t->\t%2\t%3\n").arg(freqs.first).arg(freqs.second).arg(speed);
+
+            // (t_freq_change - t_freq_change2) * speed_freq2
+            frequenciesInRangeStr += QString("(%1 - %2) * %3 +\n").arg(last_time).arg(freqs.first).arg(speed);
+
+            execdCycles += std::ceil( (last_time - freqs.first) * speed );
+            last_time = freqs.first;
+        }
+        frequenciesInRangeStr =  frequenciesInRangeStr.trimmed();
+        frequenciesInRangeStr =  frequenciesInRangeStr.remove(frequenciesInRangeStr.length() - 1, 1);
+
+        info += "\n";
+        info += "execd cycles:\n" + frequenciesInRangeStr + " = " + QString::number(execdCycles);
+        info += "\n";
+    }
+
+    QMessageBox msgBox;
+    msgBox.setText(info);
+    msgBox.exec();
+
+    QGraphicsRectItem::mousePressEvent(e); // event propagation
 }

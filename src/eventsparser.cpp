@@ -1,6 +1,7 @@
 #include "eventsparser.h"
 #include "eventsmanager.h"
 #include <QDebug>
+#include <QFileInfo>
 #include <QList>
 
 void EventsParser::parseFile(QString path)
@@ -20,7 +21,56 @@ void EventsParser::parseFile(QString path)
     }
   }
 
-//  emit fileParsed();
+  // for some tasks only their last running event has been stored
+  // but not the corresponding end event (in case of bugs)
+  completeSchedulingEvents();
+}
+
+void EventsParser::parseFrequencies()
+{
+    QString filenameBig     = _folder_frequencies + "/freqBIG.txt";
+    QString filenameLittle  = _folder_frequencies + "/freqLITTLE.txt";
+
+    qDebug() << "Trying to read frequencies over time for " \
+                "both big and little islands from folder" << _folder_frequencies;
+
+    // read the frequencies over time of the islands
+    QVector<Island_BL*> islands = EVENTSMANAGER.getIslands();
+    for (Island_BL* island : islands)
+        if (island->isBig())
+            island->readFrequenciesOverTime(filenameBig);
+        else
+            island->readFrequenciesOverTime(filenameLittle);
+}
+
+void EventsParser::completeSchedulingEvents()
+{
+    QMap<Task*, Event*> addedEvents;
+
+    QMapIterator<CPU*, QList<Event*>> i(EVENTSMANAGER.getAllCPUsEvents());
+    while (i.hasNext()) {
+        i.next();
+        Event * const evt = i.value().last();
+        if (evt->getStatus() == "S") {
+            TICK dur = EVENTSMANAGER.getLastEvent() - evt->getStart() + 1000;
+            Event* evtend = new Event(evt->getStart(), dur, evt->getCPU(), evt->getTask(), "RUNNING", RUNNING);
+            evtend->setStatus("E");
+            evtend->setMagnification(evt->getMagnification());
+            evtend->setHasFinished(false);
+
+            addedEvents.insert(evt->getTask(), evtend);
+            EVENTSMANAGER.newEventArrived(evtend);
+        }
+    }
+
+    qDebug() << "Found # not completed tasks: " << addedEvents.size();
+    for (const auto& elem : addedEvents.toStdMap()) {
+        qDebug() << "\t" << elem.first->print() << " -> " << elem.second->print();
+    }
+}
+
+void EventsParser::print() const
+{
     qDebug() << "---------------------------------------";
     qDebug() << "Read lines from file: " << QString::number(EVENTSPARSER.readLines);
 
@@ -36,15 +86,12 @@ void EventsParser::parseFile(QString path)
     qDebug() << "CPUs:";
     for (CPU* e : EVENTSMANAGER.getCPUs())
         qDebug() << e->print();
-//    qDebug() << "Events:"; // heavy to print them out. Use for debug
-//    for (auto& elem : tasksEvents.toStdMap()) {
-//        qDebug() << elem.first->print();
-//        QList<Event*> evts = elem.second;
-//        for (Event* e : evts)
-//            qDebug() << "\t" << e->print();
-//    }
+    qDebug() << "Events:"; // heavy to print them out. Use for debug
+    for (auto& elem : tasksEvents.toStdMap()) {
+        qDebug() << elem.first->print();
+        QList<Event*> evts = elem.second;
+        for (Event* e : evts)
+            qDebug() << "\t" << e->print();
+    }
     qDebug() << "---------------------------------------";
-
-    EVENTSMANAGER.onAllEventsAdded();
-
 }

@@ -6,6 +6,8 @@
 #include <QByteArray>
 #include <QList>
 
+#define TICK unsigned long
+
 enum EVENT_KIND {
   ACTIVATION,
   DEAD,
@@ -14,6 +16,7 @@ enum EVENT_KIND {
   DEADLINE,
   MISS,
   CONFIGURATION,
+  FREQUENCY_CHANGE,
   NONE
 };
 
@@ -60,20 +63,27 @@ public:
     /// CPU unique identifier
     unsigned int id;
 
-    double utilization, utilization_active;
-
     /// tasks that the CPU holds at a given time, for each time (i.e., tick)
-    QMap<unsigned long, QList<Task*>> tasksOverTime;
+    QMap<TICK, QList<Task*>> tasksOverTime;
 
-    CPU(QString name, double util, double util_active) :
-       name(name), utilization(util), utilization_active(util_active) {
+    /// CPU utilization and active utilizations over time. Active utilization defaults to 0.0
+    QMap<TICK, QPair<double, double>> _utils;
+
+    CPU(QString name) : name(name) {
         id = currentid;
         currentid++;
     }
 
-    QList<Task*> getTasksAtTime(unsigned int tick) {
-        return tasksOverTime[tick];
+    /// List of tasks at given tick t
+    QList<Task*> getTasksAtTime(TICK tick) {
+        return tasksOverTime.lowerBound(tick).value();
     }
+
+    /// The utilization and active utilization (default 0.0) at tick t or the closest tick from the past
+    QPair<double, double> getUtilizationAt(TICK t) { if (_utils.isEmpty()) return QPair<double, double>(0.0, 0.0); else return _utils.lowerBound(t).value(); }
+
+    /// reads both utilizations and active utilizations over time
+    void readUtilizationsOverTime(QString filename);
 
     QString print() const {
         return "CPU " + name + ", id: " + QString::number(id);
@@ -82,6 +92,71 @@ public:
     bool operator==(const CPU& other) { return id == other.id; }
 
     bool operator<(const  CPU& other) { return id < other.id; }
+};
+
+
+class Island_BL;
+/// CPU big-little
+class CPU_BL : public CPU {
+protected:
+    /// Island this core belongs to
+    Island_BL* _island;
+
+public:
+    CPU_BL(QString name, Island_BL* island)
+        : CPU(name), _island(island) {}
+
+    Island_BL* getIsland() { return _island; }
+    void setIsland(Island_BL* i) { _island = i; }
+
+//    QVector<QPair<TICK, double>> getFrequenciesOverTimeInRange(TICK t1, TICK t2) { return _island->getFrequenciesOverTimeInRange(t1, t2); }
+
+//    double getSpeed(double freq) const { return _island->getSpeed(freq); }
+};
+
+/// Island big-little
+class Island_BL {
+protected:
+    /// Frequency over time for the island
+    QMap<TICK, double> _frequencies;
+
+    /// 200 MHz -> 0.00021, 1200 MHz -> 0.7777, etc.
+    static QMap<double, double> _speeds_big, _speeds_little;
+
+    /// CPUs composing this island
+    QVector<CPU_BL*> _cpus;
+
+    bool _isBig = true;
+
+public:
+    Island_BL() {}
+
+    void setBig(bool isbig) { _isBig = isbig; }
+
+    void setCPUs(QVector<CPU_BL*> cpus) { _cpus = cpus; }
+
+    static void readFrequencySpeed(QString filenameSpeeds, QString island_name);
+
+    void readFrequenciesOverTime(QString filenameFrequenciesOverTime);
+
+    double getFrequencyAt(TICK t) const {
+        return _frequencies.lowerBound(t).value();
+    }
+
+    QMap<TICK, double> getFrequencies() const { return _frequencies; }
+
+    QVector<CPU_BL*> getProcessors() const { return _cpus; }
+
+    double getSpeed(double freq) const {
+        double f = _speeds_big.toStdMap().at(freq);
+        if (!isBig())
+            f = _speeds_little.toStdMap().at(freq);
+        return f;
+    }
+
+    bool isBig() const { return _isBig; }
+
+    QVector<QPair<TICK, double>> getFrequenciesOverTimeInRange(TICK t1, TICK t2);
 };
 
 class Event : public QObject
@@ -97,6 +172,9 @@ class Event : public QObject
   EVENT_KIND kind;
   QString status;
 
+  // In case of bugs, tasks are scheduled but they don't end
+  bool _hasFinished = true;
+
   qreal magnification;
 
   bool correct;
@@ -108,7 +186,7 @@ class Event : public QObject
 public:
   Event();
   Event(const Event &o);
-  Event(unsigned long time_start, unsigned long duration, CPU* cpu, Task* task, QString& event, EVENT_KIND kind) {
+  Event(unsigned long time_start, unsigned long duration, CPU* cpu, Task* task, QString event, EVENT_KIND kind) {
       this->time_start = time_start;
       this->duration   = duration;
       this->cpu        = cpu;
@@ -116,25 +194,36 @@ public:
       this->event      = event;
       this->kind       = kind;
   }
-  Event& operator=(const Event &o);
-  void parse(QByteArray line);
-  bool isCorrect();
-  bool isPending();
-  bool isRange();
+
   unsigned long getColumn() { return column; }
   unsigned long getRow() {return row; }
   void setColumn(unsigned long c) { column = c; }
   void setRow(unsigned long r) { row = r; }
-  void setMagnification(qreal magnification) {this->magnification = magnification; }
+  void setEvent(QString e) { event = e; }
+  QString getEvent() const { return event; }
+  void setStatus(QString s) { status = s; }
+  QString getStatus() const { return status; }
+  void setHasFinished(bool f) { _hasFinished = f; }
+  bool hasFinished() const { return _hasFinished; }
+  void setMagnification(qreal magnification) { this->magnification = magnification; }
   qreal getMagnification() { return magnification; }
-  unsigned long getStart();
-  unsigned long getDuration();
-  Task* getTask();
-  CPU* getCPU();
-  EVENT_KIND getKind();
+  bool isCorrect() { return correct; }
+  bool isPending() { return pending; }
+  bool isRange() { return range; }
+  unsigned long getStart() { return time_start; }
+  unsigned long getDuration() { return duration; }
+  Task* getTask() { return task; }
+  CPU* getCPU() { return cpu; }
+  EVENT_KIND getKind() { return kind; }
+
+
+  /// Fill this event fields given a line (string)
+  void parse(QByteArray line);
+
+  Event& operator=(const Event &o);
 
   QString print() const {
-      QString s = QString("t=%1, %2 %3 for %4 on %5").arg(QString::number(time_start), event, status, task->print(), cpu->print());
+      QString s = QString("t=%1, %2 %3 for %4 on %5 dur %6").arg(QString::number(time_start), event, status, (task == NULL ? "":task->print()), (cpu == NULL?"":cpu->print()), QString::number(duration));
       return s;
   }
 

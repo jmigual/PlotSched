@@ -35,7 +35,13 @@ class EventsManager : public QObject
   /// List of all CPUs encountered
   QVector<CPU*>  _cpus;
 
-  qreal last_event;
+  /// Islands of big-little architecture, if any
+  QVector<Island_BL*> _islands;
+
+  /// folder of tasks and cpus generalities
+  QString _folder_generaldata;
+
+  TICK last_event;
 
   qreal last_magnification;
 
@@ -83,10 +89,15 @@ public:
 
   void setMainWindow(MainWindow* mw) { this->mainWindow = mw; }
 
+  void setFolderGeneralData(QString folder) { _folder_generaldata = folder; }
+
     unsigned long countTasks();
 
     QList<Event> * getCallerEventsList(unsigned long caller);
 
+    TICK getLastEvent() const { return last_event; }
+
+    QVector<Island_BL*> getIslands() { return _islands; }
 
     QVector<Task*> getTasks() { return _tasks; }
 
@@ -122,9 +133,11 @@ public:
         return NULL;
     }
 
-    /// callback to be called when all events have been processed.
-    /// it will update the plot
-    void onAllEventsAdded();
+    void readTasks();
+
+    void readCPUs();
+
+    void addFrequencyChangeEvents();
 
 signals:
 

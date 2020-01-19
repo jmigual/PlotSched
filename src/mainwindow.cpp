@@ -14,11 +14,11 @@
 
 #include <QDebug>
 
-MainWindow::MainWindow(unsigned long startingTick, unsigned long finalTick, QWidget *parent) :
+MainWindow::MainWindow(TICK startingTick, TICK finalTick, QWidget *parent) :
   QMainWindow(parent),
   ui(new Ui::MainWindow)
 {
-    qDebug() << "MainWindow()";
+  qDebug() << "MainWindow()";
   ui->setupUi(this);
 
   setupShortcut();
@@ -28,7 +28,6 @@ MainWindow::MainWindow(unsigned long startingTick, unsigned long finalTick, QWid
 
   populate_dock();
   populate_toolbar();
-
 
   EVENTSMANAGER.setMainWindow(this);
   EVENTSPARSER.setStartingTick(startingTick);
@@ -53,6 +52,7 @@ void MainWindow::loadSettings()
 
 void MainWindow::reloadTrace()
 {
+    // todo delete the plotframe if already exists
     this->newTraceChosen(curTrace);
 }
 
@@ -68,7 +68,7 @@ void MainWindow::zoomChanged(qreal start, qreal end, qreal windowWidth)
   updatePlot(center);
 }
 
-// the menu on the left
+// the menu on the left with filenames
 void MainWindow::populate_dock()
 {
   tfl = new TraceFileLister(this);
@@ -78,7 +78,7 @@ void MainWindow::populate_dock()
   connect(tfl, SIGNAL(traceChosen(QString)), this, SLOT(newTraceChosen(QString)));
 }
 
-// the one above
+// the one above with icons
 void MainWindow::populate_toolbar()
 {
   CustomToolBar * ct = new CustomToolBar(this);
@@ -161,7 +161,12 @@ void MainWindow::newTraceChosen(QString path)
     this->curTrace = path;
 
     EVENTSMANAGER.clear();
+    EVENTSMANAGER.readCPUs();
+    EVENTSMANAGER.readTasks();
     EVENTSPARSER.parseFile(path);
+    EVENTSPARSER.parseFrequencies();
+    EVENTSMANAGER.addFrequencyChangeEvents();
+    updatePlot();
   }
 }
 
@@ -180,19 +185,30 @@ void MainWindow::updatePlot(qreal center)
     unsigned long row = 0;
     unsigned long column = 0; // the column I am dealing with
 
+    EVENTSPARSER.print();
+
     if (_plotFrames[_currentView] != NULL) {
-        if (_currentView == VIEWS::GANNT) {
+        if (_currentView == VIEWS::GANNT) { // default
             // CPU #0 |_____t1______t2_____...
             PlotFrame* plotFrame = new PlotFrame;
             _plotFrames[_currentView] = plotFrame;
+
             QMap <CPU*, QList<Event*>> m = EVENTSMANAGER.getAllCPUsEvents();
+            QVector<QPair<CPU*, QList<Event*>>> msorted = QVector<QPair<CPU*, QList<Event*>>>(m.size());
             for (const auto& elem : m.toStdMap()) {
+                QPair<CPU*, QList<Event*>> pair = QPair<CPU*, QList<Event*>>(elem.first, elem.second);
+                msorted[QString(elem.first->name).toInt()] = pair;
+            }
+            Q_ASSERT (msorted.size() == m.keys().size());
+
+            for (const auto& elem : msorted) {
                 QList<Event*> l = elem.second;
                 plotFrame->addRow(elem.first->name);
 
                 for (Event* e : l) {
                   e->setRow(row);
-    //              qDebug() << "dealing with " << e->print();
+//                  if (e->getKind() != FREQUENCY_CHANGE)
+                      qDebug() << "dealing with " << e->print();
                   EventView * ev = new EventView(e);
                   if (e->getKind() != EVENT_KIND::ACTIVATION)
                       ev->setFgTextType(EventView::FG_FIELD::TASKANME);
@@ -219,21 +235,8 @@ void MainWindow::updatePlot(qreal center)
                 ++row;
             }
         }
-        else { // CORES. Maybe the resulting code will be mergeable with the one above.
-    //        QList<QString> cores = em.getCPUList();
-    //        // for each core, show its ready and running tasks at time t
-    //        for (QString core : cores) {
-    //            QMap <QString, QList<QString>> * m = em.getTasks(core, 0); // BIG0 -> { T0 runs, T1 ready, T2 ready }
-    //            pf->addColumn(core);
-    //            for (QString task : m->values()) {
-    //                  e.setColumn(column);
-    //                  e.setRow(row);
-    //                  EventView * ev = new EventView(e);
-    //                  plot->addNewItem(ev);
-    //                  row++;
-    //            }
-    //            column++;
-    //        }
+        else { // CORES
+
         }
     } // if _plotframe[current view] == NULL
 

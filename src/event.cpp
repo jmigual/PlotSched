@@ -29,9 +29,9 @@ bool Event::parseLine(QByteArray line)
   task = EVENTSMANAGER.getTaskByName(taskname);
   cpu  = EVENTSMANAGER.getCPUByName(cpuname); // tasks won't have sequential ID, they're shared with CPU's
   if (task == NULL)
-      task = new Task(taskname, 0, 0, 0);
+      task = new Task(taskname);
   if (cpu == NULL)
-      cpu  = new CPU(cpuname, 0.0, 0.0);
+      cpu  = new CPU(cpuname);
 
   if (time_start < EVENTSPARSER.getStartingTick() || time_start > EVENTSPARSER.getFinalTick())
       return false;
@@ -50,6 +50,8 @@ bool Event::parseLine(QByteArray line)
     kind = DEADLINE;
   } else if (event == "MISS") {
     kind = MISS;
+  } else if (event == "FREQ_CHANGE") { // todo maybe useless
+    kind = FREQUENCY_CHANGE;
   }
 
   if (status == "I") {
@@ -73,16 +75,6 @@ bool Event::parseLine(QByteArray line)
     Event * ev = new Event(*this);
     pending_events[task->name].insert(kind, ev);
   }
-
-  /*
-  qDebug() << "Read from device : " << time_start;
-  qDebug() << "Read from device : " << caller;
-  qDebug() << "Read from device : " << cpu;
-  qDebug() << "Read from device : " << event;
-  qDebug() << "Read from device : " << status;
-
-  qDebug() << "";
-  */
 
   return true;
 }
@@ -148,48 +140,100 @@ Event& Event::operator=(const Event &o)
   return *this;
 }
 
+// -------------------------------- Island BL, CPU BL
 
-bool Event::isCorrect()
-{
-  return correct;
+QMap<double, double> Island_BL::_speeds_big, Island_BL::_speeds_little;
+
+void Island_BL::readFrequencySpeed(QString filenameSpeeds, QString island_name) {
+    // f1 speed bzip2
+    // ...
+    // fn speed bzip2
+
+    qDebug() << "Trying to read frequency -> speed from " << filenameSpeeds;
+    QFile file(filenameSpeeds);
+    if(!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "error while reading from " << filenameSpeeds;
+    }
+
+    QTextStream in(&file);
+    while(!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(" ");
+        double f0 = QString(fields.at(0)).toDouble();
+        double f1 = QString(fields.at(1)).toDouble();
+        if (island_name == "big")
+            Island_BL::_speeds_big.insert(f0, f1);
+        else
+            Island_BL::_speeds_little.insert(f0, f1);
+    }
+    file.close();
 }
 
-
-bool Event::isPending()
+void Island_BL::readFrequenciesOverTime(QString filenameFrequenciesOverTime)
 {
-  return pending;
+    QFile file(filenameFrequenciesOverTime);
+    if(!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "error while reading from " << filenameFrequenciesOverTime;
+    }
+
+    QTextStream in(&file);
+    while(!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(" ");
+        TICK f0 = QString(fields.at(0)).toUInt();
+        double f1 = QString(fields.at(2)).toDouble();
+        this->_frequencies.insert(f0, f1);
+    }
+    file.close();
+
+    qDebug() << "Read # frequencies over time: " << _frequencies.size();
 }
 
-
-bool Event::isRange()
+QVector<QPair<TICK, double>> Island_BL::getFrequenciesOverTimeInRange(TICK t1, TICK t2)
 {
-  return range;
+    QVector<QPair<TICK, double>> res;
+    QPair<TICK, double> last_freq;
+
+    for (const auto& elem : _frequencies.toStdMap()) {
+        if (elem.first >= t1 && elem.first <= t2) {
+//            if (!res.isEmpty() && res.last().first == elem.first) // same time, different freqs
+//                res.removeLast();
+            res.push_back(QPair<TICK, double>(elem.first, elem.second));
+        }
+        else if (elem.first < t1)
+            last_freq = QPair<TICK, double>(t1, elem.second);
+    }
+
+    if (res.size() == 0) {
+        // try with the speed right before t1
+        res.push_back(last_freq);
+    }
+
+    return res;
 }
 
-
-unsigned long Event::getStart()
+void CPU::readUtilizationsOverTime(QString filename)
 {
-  return time_start;
-}
+    // t1 cpuid util util_active
+    // ...
+    // tn cpuid util util_active
 
+    QFile file(filename);
+    if(!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "error while reading from " << filename;
+    }
 
-unsigned long Event::getDuration()
-{
-  return duration;
-}
+    QTextStream in(&file);
+    while(!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(" ");
+        TICK f0 = QString(fields.at(0)).toUInt();
+        int  f1 = QString(fields.at(1)).toUInt();
+        double f2 = QString(fields.at(2)).toDouble();
+        double f3 = QString(fields.at(3)).toDouble();
 
-
-Task* Event::getTask()
-{
-  return task;
-}
-
-CPU* Event::getCPU()
-{
-    return cpu;
-}
-
-EVENT_KIND Event::getKind()
-{
-  return kind;
+        if (f1 == this->id)
+            this->_utils.insert(f0, QPair<double, double>(f1, f2));
+    }
+    file.close();
 }

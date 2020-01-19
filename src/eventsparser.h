@@ -21,10 +21,13 @@ class EventsParser : public QObject
   EventsManager* _em;
 
   /// first tick to be parsed
-  unsigned long _startingTick = 0;
+  TICK _startingTick = 0;
 
   /// last tick to be parsed. If 0, then this parameter is discarded
-  unsigned long _finalTick = 9999999999;
+  TICK _finalTick = 9999999999;
+
+  /// folder of the frequencies over time for both big and little islands
+  QString _folder_frequencies = "";
 
 private:
 
@@ -34,6 +37,8 @@ private:
   ~EventsParser() {
     qDebug() << __func__;
   }
+
+  void completeSchedulingEvents();
 
 public:
   /// Number of read lines from file
@@ -54,22 +59,21 @@ public:
 
   // ---------------------------------- functions to get private fields
 
-  void setStartingTick(unsigned long st) { _startingTick = st; }
+  void setStartingTick(TICK st) { _startingTick = st; }
   unsigned long getStartingTick() { return _startingTick; }
 
-  void setFinalTick(unsigned long st) { _finalTick = st; }
+  void setFinalTick(TICK st) { _finalTick = st; }
   unsigned long getFinalTick() { return _finalTick; }
+
+  void setFolderFrequencies(QString folder) { _folder_frequencies = folder; }
 
   // ---------------------------------- other functions
 
-  void parseFile(QString);
+  void parseFile(QString filename);
 
-public slots:
+  void parseFrequencies();
 
-signals:
-  void operate(QString);
-  void eventGenerated(Event);
-  void fileParsed();
+  void print() const;
 };
 
 #endif // EVENTSPARSER_H
