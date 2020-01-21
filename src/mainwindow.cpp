@@ -160,12 +160,15 @@ void MainWindow::newTraceChosen(QString path)
     settings.setValue("lastPath", path);
     this->curTrace = path;
 
+    EVENTSMANAGER.setCurrentFolder(QFileInfo(path).dir());
+
     EVENTSMANAGER.clear();
     EVENTSMANAGER.readCPUs();
     EVENTSMANAGER.readTasks();
     EVENTSPARSER.parseFile(path);
     EVENTSPARSER.parseFrequencies();
     EVENTSMANAGER.addFrequencyChangeEvents();
+    EVENTSMANAGER.moveBackTicks();
     updatePlot();
   }
 }

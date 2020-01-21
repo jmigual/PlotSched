@@ -1,6 +1,7 @@
 #include "eventsmanager.h"
 #include "mainwindow.h"
 #include <eventview.h>
+#include <limits>
 
 #include <QDebug>
 
@@ -36,9 +37,55 @@ void EventsManager::addFrequencyChangeEvents()
     }
 }
 
+void EventsManager::moveBackTicks()
+{
+    qDebug() << __func__ << "()";
+
+    TICK minTick = getMinimumSchedulingTick();
+
+    for (CPU* cpu : _cpusEvents.keys()) {
+        QList<Event*> le = _cpusEvents[cpu];
+        for (Event* evt : le) {
+            Q_ASSERT (evt->getStart() >= minTick);
+            evt->setStart(evt->getStart() - minTick);
+        }
+    }
+
+    for (Island_BL* isl : getIslands()) {
+        isl->moveBackTicks(minTick);
+    }
+}
+
+TICK EventsManager::getMinimumSchedulingTick(bool reset) const {
+    // first tick is taken from the .pst file (i.e., only scheduling evts)
+    static TICK minTick = std::numeric_limits<TICK>::max();
+
+    // user chooses another trace, for example
+    if (reset)
+        minTick = std::numeric_limits<TICK>::max();
+
+    // if we have already computed the value (when the ser chooses a new .pst file), we return it
+    if (minTick < std::numeric_limits<TICK>::max())
+        return minTick;
+
+    for (auto& elem : _cpusEvents.toStdMap()) {
+        QList<Event*> le = elem.second;
+        for (Event* evt : le) {
+            if (evt->getKind() == FREQUENCY_CHANGE)
+                continue;
+
+            TICK tick = evt->getStart();
+            if (tick < minTick)
+                minTick = tick;
+        }
+    }
+
+    return minTick;
+}
+
 void EventsManager::readTasks()
 {
-    QString filename = _folder_generaldata + "/tasks.txt";
+    QString filename = _currentFolder + "/tasks.txt";
     qDebug() << "Trying to read tasks generalities from " + filename;
     QFile file(filename);
     if(!file.open(QIODevice::ReadOnly)) {
@@ -60,7 +107,7 @@ void EventsManager::readTasks()
 
 void EventsManager::readCPUs()
 {
-    QString filename = _folder_generaldata + "/cpus.txt";
+    QString filename = _currentFolder + "/cpus.txt";
     qDebug() << "Trying to read CPUs generalities from " + filename;
     QFile file(filename);
     if(!file.open(QIODevice::ReadOnly)) {

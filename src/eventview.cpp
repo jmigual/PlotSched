@@ -319,6 +319,9 @@ void RectItemShowingInfo::onClicked(QGraphicsSceneMouseEvent* e, EventView* even
     TICK end   = e_->getDuration() + start;
     TICK delta = e_->getDuration();
 
+    if (e_->getKind() == FREQUENCY_CHANGE)
+        return;
+
     info = e_->getTask()->name + "\n";
     info += QString("end - start = %1 - %2 = %3 (time)\n").arg(end).arg(start).arg(delta);
     info += "\n";
@@ -334,6 +337,7 @@ void RectItemShowingInfo::onClicked(QGraphicsSceneMouseEvent* e, EventView* even
         double last_speed = 0.0;
         int idx = 0;
         for (QPair<TICK, double> freqs : frequenciesInRange) {
+            Q_ASSERT(freqs.second > 0);
             speed = cpubl->getIsland()->getSpeed(freqs.second);
 
             //  time -> frequency

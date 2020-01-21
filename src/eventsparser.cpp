@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QList>
+#include <QMessageBox>
 
 void EventsParser::parseFile(QString path)
 {
@@ -10,6 +11,7 @@ void EventsParser::parseFile(QString path)
 
   QString result;
   QFile f(path);
+  bool isFileEmpty = true;
 
   if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
     while (!f.atEnd()) {
@@ -18,21 +20,28 @@ void EventsParser::parseFile(QString path)
       if (e->isCorrect()) {
         EVENTSMANAGER.newEventArrived(e);
       }
+      isFileEmpty = false;
     }
   }
 
   // for some tasks only their last running event has been stored
   // but not the corresponding end event (in case of bugs)
   completeSchedulingEvents();
+
+  if (isFileEmpty) {
+      QMessageBox m;
+      m.setText("Error:" + path + " is empty!");
+      m.exec();
+  }
 }
 
 void EventsParser::parseFrequencies()
 {
-    QString filenameBig     = _folder_frequencies + "/freqBIG.txt";
-    QString filenameLittle  = _folder_frequencies + "/freqLITTLE.txt";
+    QString filenameBig     = EVENTSMANAGER.getCurrentFolder() + "/freqBIG.txt";
+    QString filenameLittle  = EVENTSMANAGER.getCurrentFolder() + "/freqLITTLE.txt";
 
     qDebug() << "Trying to read frequencies over time for " \
-                "both big and little islands from folder" << _folder_frequencies;
+                "both big and little islands from folder" << EVENTSMANAGER.getCurrentFolder();
 
     // read the frequencies over time of the islands
     QVector<Island_BL*> islands = EVENTSMANAGER.getIslands();

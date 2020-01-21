@@ -26,9 +26,6 @@ class EventsParser : public QObject
   /// last tick to be parsed. If 0, then this parameter is discarded
   TICK _finalTick = 9999999999;
 
-  /// folder of the frequencies over time for both big and little islands
-  QString _folder_frequencies = "";
-
 private:
 
   // private constructor to prevent instantiations
@@ -64,8 +61,6 @@ public:
 
   void setFinalTick(TICK st) { _finalTick = st; }
   unsigned long getFinalTick() { return _finalTick; }
-
-  void setFolderFrequencies(QString folder) { _folder_frequencies = folder; }
 
   // ---------------------------------- other functions
 

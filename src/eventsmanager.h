@@ -6,6 +6,7 @@
 #include <QList>
 #include <QString>
 #include <QDebug>
+#include <QDir>
 
 #include "event.h"
 
@@ -38,8 +39,8 @@ class EventsManager : public QObject
   /// Islands of big-little architecture, if any
   QVector<Island_BL*> _islands;
 
-  /// folder of tasks and cpus generalities
-  QString _folder_generaldata;
+  /// Folder of the current trace file
+  QString _currentFolder;
 
   TICK last_event;
 
@@ -89,9 +90,11 @@ public:
 
   void setMainWindow(MainWindow* mw) { this->mainWindow = mw; }
 
-  void setFolderGeneralData(QString folder) { _folder_generaldata = folder; }
-
     unsigned long countTasks();
+
+    QString getCurrentFolder() const { return _currentFolder; }
+
+    void setCurrentFolder(QDir f) { _currentFolder = f.absolutePath(); }
 
     QList<Event> * getCallerEventsList(unsigned long caller);
 
@@ -107,15 +110,17 @@ public:
 
     QMap<QString, QList<QString> > *getTasks(QString core, unsigned int time);
 
-    void addTask(Task* task) {
-        if (_tasks.contains(task))
-            _tasks.append(task);
-    }
+    void readTasks();
 
-    void addCPU(CPU* c) {
-        if (_cpus.contains(c))
-            _cpus.append(c);
-    }
+    void readCPUs();
+
+    void addFrequencyChangeEvents();
+
+    /// Returns the minimum scheduling tick in the .pst file (only performed once)
+    unsigned long getMinimumSchedulingTick(bool reset = false) const;
+
+    /// makes ticks begin from t=0 instead of sometime in the future
+    void moveBackTicks();
 
     /// Returns the task given its name
     Task* getTaskByName(QString &name) {
@@ -132,14 +137,6 @@ public:
                 return t;
         return NULL;
     }
-
-    void readTasks();
-
-    void readCPUs();
-
-    void addFrequencyChangeEvents();
-
-signals:
 
 public slots:
     void newEventArrived(Event* e);

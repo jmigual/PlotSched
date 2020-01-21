@@ -176,17 +176,31 @@ void Island_BL::readFrequenciesOverTime(QString filenameFrequenciesOverTime)
         qDebug() << "error while reading from " << filenameFrequenciesOverTime;
     }
 
+    TICK minTick = EVENTSMANAGER.getMinimumSchedulingTick();
     QTextStream in(&file);
     while(!in.atEnd()) {
         QString line = in.readLine();
         QStringList fields = line.split(" ");
         TICK f0 = QString(fields.at(0)).toUInt();
         double f1 = QString(fields.at(2)).toDouble();
-        this->_frequencies.insert(f0, f1);
+        if (f0 >= minTick)
+            this->_frequencies.insert(f0, f1);
     }
     file.close();
 
     qDebug() << "Read # frequencies over time: " << _frequencies.size();
+}
+
+void Island_BL::moveBackTicks(unsigned long minTick)
+{
+    for (const auto& elem : _frequencies.toStdMap()) {
+        if (elem.first >= minTick) {
+            TICK t = elem.first - minTick;
+            double f = elem.second;
+            _frequencies.remove(elem.first);
+            _frequencies[t] = f;
+        }
+    }
 }
 
 QVector<QPair<TICK, double>> Island_BL::getFrequenciesOverTimeInRange(TICK t1, TICK t2)
@@ -196,8 +210,6 @@ QVector<QPair<TICK, double>> Island_BL::getFrequenciesOverTimeInRange(TICK t1, T
 
     for (const auto& elem : _frequencies.toStdMap()) {
         if (elem.first >= t1 && elem.first <= t2) {
-//            if (!res.isEmpty() && res.last().first == elem.first) // same time, different freqs
-//                res.removeLast();
             res.push_back(QPair<TICK, double>(elem.first, elem.second));
         }
         else if (elem.first < t1)

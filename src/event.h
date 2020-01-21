@@ -147,14 +147,17 @@ public:
 
     QVector<CPU_BL*> getProcessors() const { return _cpus; }
 
+    bool isBig() const { return _isBig; }
+
     double getSpeed(double freq) const {
+        Q_ASSERT(_speeds_big.size() > 0 && _speeds_little.size() > 0);
         double f = _speeds_big.toStdMap().at(freq);
         if (!isBig())
             f = _speeds_little.toStdMap().at(freq);
         return f;
     }
 
-    bool isBig() const { return _isBig; }
+    void moveBackTicks(TICK minTick);
 
     QVector<QPair<TICK, double>> getFrequenciesOverTimeInRange(TICK t1, TICK t2);
 };
@@ -163,10 +166,10 @@ class Event : public QObject
 {
   Q_OBJECT
 
-  unsigned long time_start;
-  unsigned long duration;
+  TICK time_start;
+  TICK duration;
   CPU* cpu;
-  unsigned long row, column; ///row and column of the event
+  unsigned int row, column; ///row and column of the event
   Task* task;
   QString event;
   EVENT_KIND kind;
@@ -186,7 +189,7 @@ class Event : public QObject
 public:
   Event();
   Event(const Event &o);
-  Event(unsigned long time_start, unsigned long duration, CPU* cpu, Task* task, QString event, EVENT_KIND kind) {
+  Event(TICK time_start, TICK duration, CPU* cpu, Task* task, QString event, EVENT_KIND kind) {
       this->time_start = time_start;
       this->duration   = duration;
       this->cpu        = cpu;
@@ -195,10 +198,10 @@ public:
       this->kind       = kind;
   }
 
-  unsigned long getColumn() { return column; }
-  unsigned long getRow() {return row; }
-  void setColumn(unsigned long c) { column = c; }
-  void setRow(unsigned long r) { row = r; }
+  unsigned int getColumn() const { return column; }
+  unsigned int getRow() const { return row; }
+  void setColumn(unsigned int c) { column = c; }
+  void setRow(unsigned int r) { row = r; }
   void setEvent(QString e) { event = e; }
   QString getEvent() const { return event; }
   void setStatus(QString s) { status = s; }
@@ -206,15 +209,17 @@ public:
   void setHasFinished(bool f) { _hasFinished = f; }
   bool hasFinished() const { return _hasFinished; }
   void setMagnification(qreal magnification) { this->magnification = magnification; }
-  qreal getMagnification() { return magnification; }
-  bool isCorrect() { return correct; }
-  bool isPending() { return pending; }
-  bool isRange() { return range; }
-  unsigned long getStart() { return time_start; }
-  unsigned long getDuration() { return duration; }
-  Task* getTask() { return task; }
-  CPU* getCPU() { return cpu; }
-  EVENT_KIND getKind() { return kind; }
+  qreal getMagnification() const { return magnification; }
+  bool isCorrect() const { return correct; }
+  bool isPending() const { return pending; }
+  bool isRange() const { return range; }
+  TICK getStart() const { return time_start; }
+  TICK getDuration() const { return duration; }
+  void setStart(TICK t) { time_start = t; }
+  void setDuration(TICK t) { duration = t; }
+  Task* getTask() const { return task; }
+  CPU* getCPU() const { return cpu; }
+  EVENT_KIND getKind() const { return kind; }
 
 
   /// Fill this event fields given a line (string)
