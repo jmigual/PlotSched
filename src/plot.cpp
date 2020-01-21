@@ -49,7 +49,7 @@ qreal Plot::updateSceneView(qreal center)
 
   qDebug() << "The center is : " << center;
 
-  view->centerOn(center, old_y);
+  view->centerOn(scene->width(), old_y);
 
   return scene->itemsBoundingRect().right();
 }

@@ -332,12 +332,14 @@ void RectItemShowingInfo::onClicked(QGraphicsSceneMouseEvent* e, EventView* even
 
         frequenciesInRange = cpubl->getIsland()->getFrequenciesOverTimeInRange(start, end);
         std::reverse(frequenciesInRange.begin(), frequenciesInRange.end());
+        if (frequenciesInRange.size() == 0) {
+            info += "Could not find any frequency. You'll need to figure it out in your RTSim log file\n";
+        }
 
         TICK last_time = e_->getDuration() + e_->getStart();
         double last_speed = 0.0;
         int idx = 0;
         for (QPair<TICK, double> freqs : frequenciesInRange) {
-            Q_ASSERT(freqs.second > 0);
             speed = cpubl->getIsland()->getSpeed(freqs.second);
 
             //  time -> frequency

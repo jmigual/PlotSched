@@ -168,7 +168,7 @@ void MainWindow::newTraceChosen(QString path)
     EVENTSPARSER.parseFile(path);
     EVENTSPARSER.parseFrequencies();
     EVENTSMANAGER.addFrequencyChangeEvents();
-    EVENTSMANAGER.moveBackTicks();
+//    EVENTSMANAGER.moveBackTicks();
     updatePlot();
   }
 }
