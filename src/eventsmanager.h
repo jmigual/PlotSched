@@ -66,7 +66,7 @@ public:
       return instance;
   }
 
-  EventsManager(EventsManager const&)  { qDebug() << "do not call"; abort(); } // Don't Implement
+  EventsManager(EventsManager const&) : QObject() { qDebug() << "do not call"; abort(); } // Don't Implement
   void operator=(EventsManager const&) { qDebug() << "do not call"; abort(); } // Don't implement
 
     // ------------------------- functions

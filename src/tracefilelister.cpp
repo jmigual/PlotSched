@@ -6,11 +6,12 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTreeWidgetItem>
+#include <mainwindow.h>
 
 #include <QDebug>
 
-TraceFileLister::TraceFileLister(QWidget *parent) :
-  QDockWidget("Traces", parent)
+TraceFileLister::TraceFileLister(MainWindow *parent) :
+  QDockWidget("Traces", parent), _mainWindow(parent)
 {
   tree = new QTreeWidget(this);
   tree->setColumnCount(1);
@@ -82,5 +83,5 @@ void TraceFileLister::traceSelected(QTreeWidgetItem * i, int col)
 
   fullPath.remove(0, 1);
 
-  emit traceChosen(fullPath);
+  _mainWindow->onNewTraceChosen(fullPath);
 }

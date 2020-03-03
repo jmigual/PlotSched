@@ -50,7 +50,7 @@ public:
       return instance;
   }
 
-  EventsParser(EventsParser const&)   { qDebug() << "do not call"; abort(); }   // Don't Implement
+  EventsParser(EventsParser const&) : QObject()  { qDebug() << "do not call"; abort(); }   // Don't Implement
   void operator=(EventsParser const&) { qDebug() << "do not call"; abort(); }   // Don't implement
 
 

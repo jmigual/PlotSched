@@ -337,8 +337,6 @@ void RectItemShowingInfo::onClicked(QGraphicsSceneMouseEvent* e, EventView* even
         }
 
         TICK last_time = e_->getDuration() + e_->getStart();
-        double last_speed = 0.0;
-        int idx = 0;
         for (QPair<TICK, double> freqs : frequenciesInRange) {
             speed = cpubl->getIsland()->getSpeed(freqs.second);
 

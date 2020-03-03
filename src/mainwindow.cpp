@@ -26,7 +26,10 @@ MainWindow::MainWindow(TICK startingTick, TICK finalTick, QWidget *parent) :
   plot = new Plot(this);
   this->setCentralWidget(plot);
 
+
+  // the menu on the left with filenames
   populate_dock();
+  // the menu above with icons
   populate_toolbar();
 
   EVENTSMANAGER.setMainWindow(this);
@@ -45,7 +48,7 @@ void MainWindow::loadSettings()
     qDebug() << "settings path: " << settings.fileName();
     QFileInfo lastPath ( settings.value("lastPath", "").toString() );
     if (lastPath.isFile()) {
-        newTraceChosen(lastPath.absoluteFilePath());
+        onNewTraceChosen(lastPath.absoluteFilePath());
         tfl->update(lastPath.absoluteDir().absolutePath());
     }
 }
@@ -53,7 +56,7 @@ void MainWindow::loadSettings()
 void MainWindow::reloadTrace()
 {
     // todo delete the plotframe if already exists
-    this->newTraceChosen(curTrace);
+    this->onNewTraceChosen(curTrace);
 }
 
 void MainWindow::setupShortcut()
@@ -73,12 +76,9 @@ void MainWindow::populate_dock()
 {
   tfl = new TraceFileLister(this);
   this->addDockWidget(Qt::LeftDockWidgetArea, tfl, Qt::Vertical);
-
-  connect(this, SIGNAL(newFolderChosen(QString)), tfl, SLOT(update(QString)));
-  connect(tfl, SIGNAL(traceChosen(QString)), this, SLOT(newTraceChosen(QString)));
 }
 
-// the one above with icons
+// the menu above with icons
 void MainWindow::populate_toolbar()
 {
   CustomToolBar * ct = new CustomToolBar(this);
@@ -146,11 +146,11 @@ void MainWindow::on_actionOpen_Folder_triggered()
   filename = tmpfilename;
   updateTitle();
 
-  emit newFolderChosen(filename);
+  tfl->update(filename);
 }
 
 /// user chooses a .pst file
-void MainWindow::newTraceChosen(QString path)
+void MainWindow::onNewTraceChosen(QString path)
 {
   qDebug() << "Chosen new trace : " << path;
 
@@ -168,7 +168,6 @@ void MainWindow::newTraceChosen(QString path)
     EVENTSPARSER.parseFile(path);
     EVENTSPARSER.parseFrequencies();
     EVENTSMANAGER.addFrequencyChangeEvents();
-//    EVENTSMANAGER.moveBackTicks();
     updatePlot();
   }
 }
@@ -181,13 +180,11 @@ void MainWindow::on_actionViewChangedTriggered(VIEWS newView)
 
 void MainWindow::updatePlot(qreal center)
 {
-    qDebug() << "View updated: " + VIEWS_STR[_currentView];
+    unsigned long row = 0;
 
     plot->clear();
 
-    unsigned long row = 0;
-    unsigned long column = 0; // the column I am dealing with
-
+    qDebug() << "View updated: " + VIEWS_STR[_currentView];
     EVENTSPARSER.print();
 
     if (_plotFrames[_currentView] != NULL) {

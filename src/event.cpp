@@ -240,9 +240,9 @@ void CPU::readUtilizationsOverTime(QString filename)
         QString line = in.readLine();
         QStringList fields = line.split(" ");
         TICK f0 = QString(fields.at(0)).toUInt();
-        int  f1 = QString(fields.at(1)).toUInt();
+        unsigned int  f1 = QString(fields.at(1)).toUInt();
         double f2 = QString(fields.at(2)).toDouble();
-        double f3 = QString(fields.at(3)).toDouble();
+//        double f3 = QString(fields.at(3)).toDouble();
 
         if (f1 == this->id)
             this->_utils.insert(f0, QPair<double, double>(f1, f2));
