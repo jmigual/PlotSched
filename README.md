@@ -2,13 +2,16 @@
 
 Scheduling traces plotter
 
-* Under development, November 2015
-* Different views (Gannt and from tasks viewpoint) - January 2020
+* Initial development, November 2015
+* Different views (Gannt and from tasks viewpoint) - January 2020 - now
+
+[screen img](screens/screen_bl_0.png)
 
 ----
 ## Authors
 
 * Alessio Balsini (a.balsini@sssup.it) - original author
+	https://github.com/balsini/PlotSched
 * Agostino Mascitti (a.mascitti@santannapisa.it)
 
 License: GPL 2.0
@@ -28,15 +31,16 @@ In the following sections are presented the steps required for compiling the too
 
 ### Dependencies
 
-This tool requires the Qt sdk.
+This tool requires the Qt5 SDK.
 
 ### Compiling
 
-Being a Qt project, it is required to generate the makefile.
+Being a Qt5 project, it is required to generate the makefile.
 Enter into directory `src/` and type:
 
 ```
-qmake test.pro
+cd src/
+qmake PlotSched.pro
 ```
 
 This produces the makefile file `Makefile`, that can be directly used for compiling:
