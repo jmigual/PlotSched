@@ -4,5 +4,7 @@
         <file>assets/gannt64x.png</file>
         <file>assets/icon64x.png</file>
         <file>assets/tau64x.png</file>
+        <file>assets/refresh64x.png</file>
+        <file>assets/folder64x.png</file>
     </qresource>
 </RCC>
