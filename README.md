@@ -5,12 +5,13 @@ Scheduling traces plotter
 * Initial development, November 2015
 * Different views (Gannt and from tasks viewpoint) - January 2020 - now
 
-[screen img](screens/screen_bl_0.png)
+![A screenshot](screens/screen_bl_0.png)
 
 ----
 ## Authors
 
 * Alessio Balsini (a.balsini@sssup.it) - original author
+
 	https://github.com/balsini/PlotSched
 * Agostino Mascitti (a.mascitti@santannapisa.it)
 
