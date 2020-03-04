@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.1.0)
+
+project(PlotSched)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+if(CMAKE_VERSION VERSION_LESS "3.7.0")
+    set(CMAKE_INCLUDE_CURRENT_DIR ON)
+endif()
+
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
+
+file(GLOB_RECURSE EXECUTABLE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE EXECUTABLE_UI CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.ui")
+file(GLOB_RECURSE EXECUTABLE_RESOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.qrc")
+
+add_executable(plotSched "${EXECUTABLE_SOURCES}" "${EXECUTABLE_UI}" "${EXECUTABLE_RESOURCES}")
+
+target_include_directories(plotSched PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+target_link_libraries(plotSched Qt5::Widgets)
+
