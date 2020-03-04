@@ -56,8 +56,8 @@ void PlotFrame::addColumn(const QString &title) {
 
 void PlotFrame::setWidth(qreal width)
 {
-  for (QVector<QGraphicsLineItem *>::iterator it = lines.begin(); it != lines.end(); ++it) {
-    QLineF old_line = (*it)->line();
-    (*it)->setLine(0, old_line.y1(), width, old_line.y1());
-  }
+    for (auto &item : lines) {
+        QLineF old_line = item->line();
+        item->setLine(0, old_line.y1(), width, old_line.y1());
+    }
 }

@@ -26,6 +26,7 @@ MainWindow::MainWindow(TICK startingTick, TICK finalTick, QWidget *parent) :
   plot = new Plot(this);
   this->setCentralWidget(plot);
 
+  for (auto & _plotFrame : _plotFrames) _plotFrame = nullptr;
 
   // the menu on the left with filenames
   populate_dock();
@@ -187,59 +188,57 @@ void MainWindow::updatePlot(qreal center)
     qDebug() << "View updated: " + VIEWS_STR[_currentView];
     EVENTSPARSER.print();
 
-    if (_plotFrames[_currentView] != NULL) {
-        if (_currentView == VIEWS::GANNT) { // default
-            // CPU #0 |_____t1______t2_____...
-            PlotFrame* plotFrame = new PlotFrame;
-            _plotFrames[_currentView] = plotFrame;
+    if (_currentView == VIEWS::GANNT) { // default
+        // CPU #0 |_____t1______t2_____...
+        auto* plotFrame = new PlotFrame();
+        _plotFrames[_currentView] = plotFrame;
 
-            QMap <CPU*, QList<Event*>> m = EVENTSMANAGER.getAllCPUsEvents();
-            QVector<QPair<CPU*, QList<Event*>>> msorted = QVector<QPair<CPU*, QList<Event*>>>(m.size());
-            for (const auto& elem : m.toStdMap()) {
-                QPair<CPU*, QList<Event*>> pair = QPair<CPU*, QList<Event*>>(elem.first, elem.second);
-                msorted[QString(elem.first->name).toInt()] = pair;
-            }
-            Q_ASSERT (msorted.size() == m.keys().size());
+        QMap <CPU*, QList<Event*>> m = EVENTSMANAGER.getAllCPUsEvents();
+        QVector<QPair<CPU*, QList<Event*>>> msorted = QVector<QPair<CPU*, QList<Event*>>>(m.size());
+        for (const auto& elem : m.toStdMap()) {
+            QPair<CPU*, QList<Event*>> pair = QPair<CPU*, QList<Event*>>(elem.first, elem.second);
+            msorted[QString(elem.first->name).toInt()] = pair;
+        }
+        Q_ASSERT (msorted.size() == m.keys().size());
 
-            for (const auto& elem : msorted) {
-                QList<Event*> l = elem.second;
-                plotFrame->addRow(elem.first->name);
+        for (const auto& elem : msorted) {
+            QList<Event*> l = elem.second;
+            plotFrame->addRow(elem.first->name);
 
-                for (Event* e : l) {
-                  e->setRow(row);
+            for (Event* e : l) {
+              e->setRow(row);
 //                  if (e->getKind() != FREQUENCY_CHANGE)
-                      qDebug() << "dealing with " << e->print();
-                  EventView * ev = new EventView(e);
-                  if (e->getKind() != EVENT_KIND::ACTIVATION)
-                      ev->setFgTextType(EventView::FG_FIELD::TASKANME);
-                  plot->addNewItem(ev);
-                }
-                ++row;
+                  qDebug() << "dealing with " << e->print();
+              auto *ev = new EventView(e);
+              if (e->getKind() != EVENT_KIND::ACTIVATION)
+                  ev->setFgTextType(EventView::FG_FIELD::TASKANME);
+              plot->addNewItem(ev);
             }
+            ++row;
         }
-        else if (_currentView == VIEWS::TASKS) {
-            PlotFrame* plotFrame = new PlotFrame;
-            _plotFrames[_currentView] = plotFrame;
-            QMap <Task*, QList<Event*>> m = EVENTSMANAGER.getAllTasksEvents();
-            for (QList<Event*> l : m.values()) {
-                plotFrame->addRow(l.first()->getTask()->name);
+    } else if (_currentView == VIEWS::TASKS) {
+        PlotFrame* plotFrame = new PlotFrame();
+        _plotFrames[_currentView] = plotFrame;
+        QMap <Task*, QList<Event*>> m = EVENTSMANAGER.getAllTasksEvents();
+        for (QList<Event*> l : m.values()) {
+            plotFrame->addRow(l.first()->getTask()->name);
 
-                for (Event* e : l) {
-                  e->setRow(row);
+            for (Event* e : l) {
+              e->setRow(row);
 //                  qDebug() << "dealing with " << e->print();
-                  EventView * ev = new EventView(e);
-                  if (e->getKind() != EVENT_KIND::ACTIVATION)
-                      ev->setFgTextType(EventView::FG_FIELD::CPUNAME);
-                  plot->addNewItem(ev);
-                }
-                ++row;
+              EventView * ev = new EventView(e);
+              if (e->getKind() != EVENT_KIND::ACTIVATION)
+                  ev->setFgTextType(EventView::FG_FIELD::CPUNAME);
+              plot->addNewItem(ev);
             }
+            ++row;
         }
-        else { // CORES
-
-        }
-    } // if _plotframe[current view] == NULL
-
+    } else { // CORES
+        auto* plotFrame = new PlotFrame();
+        _plotFrames[_currentView] = plotFrame;
+        qDebug() << "This part is not implemented yet";
+    }
+    
     qreal rightmost = plot->updateSceneView(center);
 
     _plotFrames[_currentView]->setWidth(rightmost);

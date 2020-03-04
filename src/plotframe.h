@@ -15,7 +15,7 @@ class PlotFrame : public QGraphicsItemGroup
   QVector<QGraphicsLineItem *> lines;
 
 public:
-  PlotFrame(qreal offset = 50, QGraphicsItem * parent = 0);
+  PlotFrame(qreal offset = 50, QGraphicsItem * parent = nullptr);
 
   /// add a row to the plot: t0 |____________
   void addRow(const QString &title);

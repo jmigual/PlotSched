@@ -65,6 +65,7 @@ void EventView::setEvent(Event* e)
       drawArrowDownRed();
       break;
     case DEAD :
+      rect = drawRect(e_->getDuration() * e_->getMagnification(), eventToColor(e_->getKind()));
       drawCircle();
       break;
     case FREQUENCY_CHANGE:

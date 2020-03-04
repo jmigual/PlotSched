@@ -13,7 +13,12 @@ namespace Ui {
   class MainWindow;
 }
 
-enum VIEWS { GANNT, TASKS, CORES, VIEWS_NONE};
+enum VIEWS {
+    GANNT = 0,
+    TASKS = 1,
+    CORES = 2,
+    VIEWS_NONE = 3
+};
 const QString VIEWS_STR[] = { "Gannt", "Tasks", "Cores" };
 
 class MainWindow : public QMainWindow
